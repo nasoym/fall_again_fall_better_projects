@@ -21,7 +21,7 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 			base=True
 			)
 		ragdoll.createHumanJoints(Engine,EngineModule,char)
-		#ragdoll.createLimits(Engine,EngineModule,char,45)
+		ragdoll.createLimits(Engine,EngineModule,char,45)
 		ragdoll.createLimitsHuman(Engine,EngineModule,char)
 		pass
 
