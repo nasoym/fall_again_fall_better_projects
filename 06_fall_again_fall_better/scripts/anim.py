@@ -8,7 +8,6 @@
 	space: toggle animation
 """
 
-import random
 import engine_scripts.helpers as helpers
 import datetime
 
@@ -18,7 +17,6 @@ import pyscript_00.animation_helper as animation_helper
 import pyscript_00.anim_weight as anim_weight
 
 import engine_scripts.saveload as saveload
-
 
 def reloadanim():
 	reload(anim_falling)
@@ -37,7 +35,6 @@ def init(Engine,EngineModule,objects):
 	if not "anims" in objects.get():
 		objects.get()["anims"] = {}
 		objects.setUnsavable("anims")
-	random.seed()
 
 	objects.get()["anims"]["stand"] = {"name":"rising","index":0,"starttime":Engine.getTime(),"done":True}
 	#Engine.log("set current animation to rising and as done")
@@ -51,25 +48,7 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 			animList = animLists[animName]
 			animation_helper.playAnimation(Engine,EngineModule,objects,v,animList)
 
-
 def keyPressed(Engine,EngineModule,key,selection,objects):
-
-	"""
-	if key == EngineModule.Keys.K_LBRACKET:
-		pass
-		#head_joints = objects.get()["head-joint"]
-		#print("head joints: " + str(head_joints))
-
-		#bodies = objects.get()["larm-r"]
-		for body in selection.get():
-			if body.isActor():
-				#body.removeFromScene()
-				#body.moveBackToScene()
-				body.dissableCollisions()
-				#body.enableCollisions()
-				"""
-
-
 	if key == EngineModule.Keys.K_SPACE:
 		if not "head" in objects.get():
 			return
@@ -84,11 +63,9 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 			#Engine.log("current animation is not yet done")
 
 def keyReleased(Engine,EngineModule,key,selection,objects):
-
 	if key == EngineModule.Keys.K_SPACE:
 		if not "head" in objects.get():
 			return
-
 		Engine.log("space: released")
 		if objects.get()["anims"]["stand"]["done"]:
 			if ((objects.get()["anims"]["stand"]["name"] == "falling") or 
@@ -96,9 +73,7 @@ def keyReleased(Engine,EngineModule,key,selection,objects):
 			):
 				objects.get()["anims"]["stand"] = {
 					"name":"rising","index":0,"starttime":Engine.getTime(),"done":False}
-
 		else:
 			Engine.log("current animation not yet done")
 			objects.get()["anims"]["stand"]["ondone"] = True
-
 
