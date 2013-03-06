@@ -1,13 +1,6 @@
 import random
 random.seed()
 
-import socket
-
-import rpyc
-from rpyc.utils.server import Server
-from rpyc.utils.server import ThreadedServer
-
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(),"..")))
@@ -20,6 +13,7 @@ import engine_scripts.misc as misc
 
 import scripts.main as main
 import scripts.temp as temp
+import scripts.anim as anim
 
 class Selection(object):
 	def __init__(self):
@@ -124,48 +118,11 @@ modules.append(select)
 modules.append(misc)
 modules.append(edit)
 
-modules.append(temp)
 modules.append(main)
+modules.append(temp)
+modules.append(anim)
 
 guiUpdates=[]
-
-
-#rpycService = rpyc.core.SlaveService("")
-#rpycServer = rpyc.utils.Server(rpyc.core.SlaveService,port=18861)
-#rpycServer = rpyc.utils.server.ThreadedServer(rpyc.core.SlaveService,port=18861)
-
-class RpycServer(Server):
-
-	#def __init__(self,):
-
-	def start(self):
-		self.listener.listen(self.backlog)
-		self.active = True
-
-	def listen(self):
-		sock = None
-		try:
-			sock, addrinfo = self.listener.accept()
-		except socket.timeout:
-			pass
-		except socket.error:
-			pass
-		if sock:
-			sock.setblocking(False)
-			self.clients.add(sock)
-			self._accept_method(sock)
-
-	def _accept_method(self,sock):
-		self._authenticate_and_serve_client(sock)
-
-#rpycServer = RpycServer(rpyc.core.SlaveService,port=18861)
-#rpycServer.start()
-
-t = ThreadedServer(rpyc.core.SlaveService,
-	hostname="127.0.0.1",port=45678)
-t.logger.quiet="quiet"
-t.start()
-
 
 def init():
 	for m in modules:
@@ -221,7 +178,6 @@ def keyReleased(key):
 			m.keyReleased(Engine,EngineModule,key,selectContainers,objects)
 
 def guiUpdate():
-	#rpycServer.listen()
 	for method in guiUpdates:
 		method(Engine,EngineModule,selectContainers,objects)
 	pass
