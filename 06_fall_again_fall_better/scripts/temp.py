@@ -14,6 +14,7 @@ import pyscript_00.ragdoll as ragdoll
 
 def keyPressed(Engine,EngineModule,key,selection,objects):
 	if key == EngineModule.Keys.K_COMMA:
+		"""
 		print("create ragdoll")
 		char = ragdoll.createHumanBodyParts(Engine,
 			EngineModule,size=5,
@@ -23,7 +24,9 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 		ragdoll.createHumanJoints(Engine,EngineModule,char)
 		ragdoll.createLimits(Engine,EngineModule,char,45)
 		ragdoll.createLimitsHuman(Engine,EngineModule,char)
+		"""
 		pass
+		#saveload.load(Engine,EngineModule,"../xml/scene.xml",objects)
 
 	if key == EngineModule.Keys.K_PERIOD:
 		pass
