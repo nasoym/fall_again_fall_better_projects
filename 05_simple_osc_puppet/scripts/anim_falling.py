@@ -1,14 +1,13 @@
-import random
 import pyscript_00.animation_helper as animation_helper
 import pyscript_00.anim_weight as anim_weight
-
 
 def setLyingAnimation(Engine,EngineModule,objects):
 	objects.get()["anims"]["stand"] = {"name":"lying","index":0,"starttime":Engine.getTime(),"done":True}
 	return True
 
 LyingAnimation = [
-	{ 'time':2000,
+	{ 
+	'time':2000,
 	'timePos':[
 		(lambda Engine,EngineModule,objects,timePos:
 		animation_helper.setTiming(Engine,EngineModule,objects,

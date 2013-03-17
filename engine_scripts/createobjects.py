@@ -127,4 +127,4 @@ def createSpaceCage(Engine,EngineModule,size,walls=True,ceilling=True):
 		shape.setColour(red,green,blue,wall_opacity)
 		shape.setLocalPosition(EngineModule.Vec3(-wall,size.y*0.5,0))
 
-	return 0
+	#return o
