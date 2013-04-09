@@ -45,11 +45,17 @@ def createPhysicStaticBoxStructure(Engine,EngineModule):
 	o.setSize(EngineModule.Vec3(10,10,10))
 	return o
 
-def createSpaceCage(Engine,EngineModule,size,walls=True,ceilling=True):
-	wall = 1.0;
-	ground_opacity = 1.0;
-	ceiling_opacity = 0.25;
-	wall_opacity = 0.1;
+def createSpaceCage(Engine,EngineModule,size,ground=True,walls=True,ceilling=True):
+	wall_thickness = 1.0;
+	#ground_opacity = 1.0
+	ceiling_opacity = 0.25
+	if not ceilling:
+		ceiling_opacity = 0.0
+
+	wall_opacity = 0.1
+	if not walls:
+		wall_opacity = 0.0
+
 	red = 1.0;
 	green = 1.0;
 	blue = 1.0;
@@ -60,71 +66,67 @@ def createSpaceCage(Engine,EngineModule,size,walls=True,ceilling=True):
 	o.setOrientation(EngineModule.Quat().fromAngles(0,0,90))
 	o.setUnselectable()
 	shape = o.addPlane()
-	shape.setLocalSize(EngineModule.Vec3(wall,size.x,size.z))
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.x,size.z))
 	shape.setMaterialName(Engine.getDefaultShadedMaterialName())
 	#shape.setColour(red,green,blue,ground_opacity)
+	if not ground:
+		shape.setColour(red,green,blue,0.0)
 	shape.turnOffShadows()
 	shape.setFinalShape()
-	shape.setLocalPosition(EngineModule.Vec3(0,-wall,0))
+	shape.setLocalPosition(EngineModule.Vec3(0,-wall_thickness,0))
 
 	#top
 	o = Engine.createStaticActor()
 	o.setPosition(EngineModule.Vec3(0,size.y,0))
 	o.setOrientation(EngineModule.Quat().fromAngles(0,0,-90))
 	o.setUnselectable()
-	if ceilling:
-		shape = o.addPlane()
-		shape.setLocalSize(EngineModule.Vec3(wall,size.x,size.z))
-		shape.setScalingNone()
-		shape.setColour(red,green,blue,ceiling_opacity)
-		shape.setLocalPosition(EngineModule.Vec3(0,wall,0))
+	shape = o.addPlane()
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.x,size.z))
+	shape.setScalingNone()
+	shape.setColour(red,green,blue,ceiling_opacity)
+	shape.setLocalPosition(EngineModule.Vec3(0,wall_thickness,0))
 
 	#front
 	o = Engine.createStaticActor()
 	o.setPosition(EngineModule.Vec3(0,0,size.z))
 	o.setOrientation(EngineModule.Quat().fromAngles(0,90,0))
 	o.setUnselectable()
-	if walls:
-		shape = o.addPlane()
-		shape.setLocalSize(EngineModule.Vec3(wall,size.y*0.5,size.x))
-		shape.setScalingNone()
-		shape.setColour(red,green,blue,wall_opacity)
-		shape.setLocalPosition(EngineModule.Vec3(0,size.y*0.5,wall))
+	shape = o.addPlane()
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.y*0.5,size.x))
+	shape.setScalingNone()
+	shape.setColour(red,green,blue,wall_opacity)
+	shape.setLocalPosition(EngineModule.Vec3(0,size.y*0.5,wall_thickness))
 
 	#back
 	o = Engine.createStaticActor()
 	o.setPosition(EngineModule.Vec3(0,0,-size.z))
 	o.setOrientation(EngineModule.Quat().fromAngles(0,-90,0))
 	o.setUnselectable()
-	if walls:
-		shape = o.addPlane()
-		shape.setLocalSize(EngineModule.Vec3(wall,size.y*0.5,size.x))
-		shape.setScalingNone()
-		shape.setColour(red,green,blue,wall_opacity)
-		shape.setLocalPosition(EngineModule.Vec3(0,size.y*0.5,-wall))
+	shape = o.addPlane()
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.y*0.5,size.x))
+	shape.setScalingNone()
+	shape.setColour(red,green,blue,wall_opacity)
+	shape.setLocalPosition(EngineModule.Vec3(0,size.y*0.5,-wall_thickness))
 
 	#left
 	o = Engine.createStaticActor()
 	o.setPosition(EngineModule.Vec3(size.x,0,0))
 	o.setOrientation(EngineModule.Quat().fromAngles(0,0,180))
 	o.setUnselectable()
-	if walls:
-		shape = o.addPlane()
-		shape.setLocalSize(EngineModule.Vec3(wall,size.y*0.5,size.z))
-		shape.setScalingNone()
-		shape.setColour(red,green,blue,wall_opacity)
-		shape.setLocalPosition(EngineModule.Vec3(wall,size.y*-0.5,0))
+	shape = o.addPlane()
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.y*0.5,size.z))
+	shape.setScalingNone()
+	shape.setColour(red,green,blue,wall_opacity)
+	shape.setLocalPosition(EngineModule.Vec3(wall_thickness,size.y*-0.5,0))
 
 	#right
 	o = Engine.createStaticActor()
 	o.setPosition(EngineModule.Vec3(-size.x,0,0))
 	o.setOrientation(EngineModule.Quat().fromAngles(0,0,0))
 	o.setUnselectable()
-	if walls:
-		shape = o.addPlane()
-		shape.setLocalSize(EngineModule.Vec3(wall,size.y*0.5,size.z))
-		shape.setScalingNone()
-		shape.setColour(red,green,blue,wall_opacity)
-		shape.setLocalPosition(EngineModule.Vec3(-wall,size.y*0.5,0))
+	shape = o.addPlane()
+	shape.setLocalSize(EngineModule.Vec3(wall_thickness,size.y*0.5,size.z))
+	shape.setScalingNone()
+	shape.setColour(red,green,blue,wall_opacity)
+	shape.setLocalPosition(EngineModule.Vec3(-wall_thickness,size.y*0.5,0))
 
-	#return o

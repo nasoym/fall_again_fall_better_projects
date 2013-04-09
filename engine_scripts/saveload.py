@@ -260,6 +260,7 @@ def load(Engine,EngineModule,fileName,objects,loadingPosition=None,loadingOrient
 							o = actorEntity.addCapsule(size)
 						elif shapeType == "plane":
 							o = actorEntity.addPlane()
+							o.setLocalSize(size)
 
 						if node.hasProp("uuid"):
 							uuid = node.prop("uuid")

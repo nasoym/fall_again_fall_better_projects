@@ -113,10 +113,10 @@ if Engine.isFullscreen():
 	runDebugMode = False
 	Engine.log("running in fullscreen turn of script reloading")
 
-#modules.append(navigate)
-#modules.append(select)
+modules.append(navigate)
+modules.append(select)
 modules.append(misc)
-#modules.append(edit)
+modules.append(edit)
 
 modules.append(main)
 modules.append(temp)

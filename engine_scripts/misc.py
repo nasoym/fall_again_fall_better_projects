@@ -1,12 +1,4 @@
 """misc:
-	k: save
-		1: scene.xml
-		2: ragdoll.xml
-		3: test.xml
-	l: load 
-		1: scene.xml
-		2: ragdoll.xml
-		3: test.xml
 	f: add force default y+ 
 		x+:1, y+:2, z+:3, x-:4, y-:5, z-:6 
 	z: switch material 
@@ -66,34 +58,6 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 		gravity = gravity + factor
 		Engine.setGravity(gravity)
 		print("set gravity to: " + str(gravity))
-
-	if key == EngineModule.Keys.K_K:
-		if Engine.isKeyDown(EngineModule.Keys.K_1):
-			print("save scene.xml")
-			saveload.save(Engine,EngineModule,"xmlscene/scene.xml",objects)
-			print("done")
-		if Engine.isKeyDown(EngineModule.Keys.K_2):
-			print("save ragdoll.xml")
-			saveload.save(Engine,EngineModule,"xmlscene/ragdoll.xml",objects)
-			print("done")
-		if Engine.isKeyDown(EngineModule.Keys.K_3):
-			print("save test.xml")
-			saveload.save(Engine,EngineModule,"xmlscene/test.xml",objects)
-			print("done")
-
-	if key == EngineModule.Keys.K_L:
-		if Engine.isKeyDown(EngineModule.Keys.K_1):
-			print("load scene.xml")
-			saveload.load(Engine,EngineModule,"../xmlscene/scene.xml",objects)
-			print("done")
-		if Engine.isKeyDown(EngineModule.Keys.K_2):
-			print("load ragdoll.xml")
-			saveload.load(Engine,EngineModule,"xmlscene/ragdoll.xml",objects)
-			print("done")
-		if Engine.isKeyDown(EngineModule.Keys.K_3):
-			print("load test.xml")
-			saveload.load(Engine,EngineModule,"xmlscene/test.xml",objects)
-			print("done")
 
 	if key == EngineModule.Keys.K_Z:
 		print("change material and visibilty")

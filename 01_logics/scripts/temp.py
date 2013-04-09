@@ -203,29 +203,61 @@ def createMainTargetFollower(Engine,EngineModule,key,selection,objects):
 	else:
 		print("no main_target")
 
+def keyDown(Engine,EngineModule,key,selection,objects):
+	if key == EngineModule.Keys.K_M:
+		print("create ragdoll")
+		a = createPhysicBox(Engine,EngineModule)
+		#a = createPhysicSphere(Engine,EngineModule)
+		#a = createPhysicCapsule(Engine,EngineModule)
+		a.setSize(EngineModule.Vec3(15,5,5))
+		a.setMass(a.getMass() * 0.01)
+		a.setPosition(EngineModule.Vec3(
+			random.uniform(0,100),
+			random.uniform(0,100),
+			random.uniform(0,100)
+			))
+
 def keyPressed(Engine,EngineModule,key,selection,objects):
 	if key == EngineModule.Keys.K_COMMA:
 		print("create ragdoll")
+		"""
 		char = ragdoll.createHumanBodyParts(Engine,
 			EngineModule,size=5,
 			#pos=EngineModule.Vec3(0,150,0),
 			pos=EngineModule.Vec3(0,10,0),
-			base=True
-			#base=False
+			#base=True
+			base=False
 			)
 		ragdoll.createHumanJoints(Engine,EngineModule,char)
 		ragdoll.createLimits(Engine,EngineModule,char,45)
 		ragdoll.createLimitsHuman(Engine,EngineModule,char)
+		"""
 		pass
 
-		#createFollowingGroup(Engine,EngineModule,key,selection,objects)
-		#createMainTarget(Engine,EngineModule,key,selection,objects)
+		a = createPhysicBox(Engine,EngineModule)
+		#a = createPhysicSphere(Engine,EngineModule)
+		#a = createPhysicCapsule(Engine,EngineModule)
+		a.setSize(EngineModule.Vec3(15,5,5))
+		a.setMass(a.getMass() * 0.01)
+		a.setPosition(EngineModule.Vec3(
+			random.uniform(0,100),
+			random.uniform(0,100),
+			random.uniform(0,100)
+			))
+
+
+
+		"""
+		createFollowingGroup(Engine,EngineModule,key,selection,objects)
+		createMainTarget(Engine,EngineModule,key,selection,objects)
+		"""
 
 	if key == EngineModule.Keys.K_PERIOD:
 		pass
 		createMainTargetFollower(Engine,EngineModule,key,selection,objects)
 
 	if key == EngineModule.Keys.K_SLASH:
+		"""
 		if "main_target" in objects.get():
 			main_target = objects.get()["main_target"]
 			if main_target:
@@ -233,6 +265,22 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 					random.uniform(-1000,1000),
 					random.uniform(-1000,1000),
 					random.uniform(-1000,1000)
+					))
+					"""
+		Engine.setGravity(EngineModule.Vec3(0,0,0))
+		sel = selection.get()[:]
+		while len(sel)>0:
+			o = sel.pop()
+			body = None
+			if o.isActor():
+				body = o
+				body.addForce(EngineModule.Vec3(
+					#random.uniform(-1000,1000),
+					#random.uniform(-1000,1000),
+					#random.uniform(-1000,1000)
+					random.choice([-1,1]) * 20000,
+					random.choice([-1,1]) * 20000,
+					random.choice([-1,1]) * 20000
 					))
 
 

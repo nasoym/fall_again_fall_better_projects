@@ -13,7 +13,7 @@ import engine_scripts.misc as misc
 
 import scripts.main as main
 import scripts.temp as temp
-import scripts.anim as anim
+import scripts.osc_anim as osc_anim
 
 class Selection(object):
 	def __init__(self):
@@ -120,21 +120,26 @@ modules.append(edit)
 
 modules.append(main)
 modules.append(temp)
-modules.append(anim)
+modules.append(osc_anim)
 
 guiUpdates=[]
 
-def init():
-	for m in modules:
-		if hasattr(m,"init"):
-			m.init(Engine,EngineModule,objects)
-
+def loadGuiUpdateModules():
+	global guiUpdates
+	guiUpdates = []
 	for m in modules:
 		if hasattr(m,"guiUpdate"):
 			#guiUpdates.append(m.guiUpdate)
 			guiUpdates.append(getattr(m,"guiUpdate"))
 
 	#print("------------------------------------------------------------------ready")
+
+def init():
+	for m in modules:
+		if hasattr(m,"init"):
+			m.init(Engine,EngineModule,objects)
+	loadGuiUpdateModules()
+
 
 def keyDown(key):
 	for m in modules:
@@ -150,6 +155,13 @@ def keyPressed(key):
 				reload(m)
 			m.keyPressed(Engine,EngineModule,key,selectContainers,objects)
 
+	if key == EngineModule.Keys.K_F2:
+		Engine.log("reload guiUpdate modules")
+		for m in modules:
+			if runDebugMode:
+				reload(m)
+		loadGuiUpdateModules()
+
 	if key == EngineModule.Keys.K_ESCAPE:
 		Engine.log("shutdown by python key escape")
 		Engine.quit()
@@ -163,6 +175,7 @@ def keyPressed(key):
 		keyText = """
 main: 
 	f1: show all module info
+	f2: reload guiUpdate modules
 	p: pause/unpause physics
 """
 		print(keyText)

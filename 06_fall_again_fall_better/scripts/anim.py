@@ -62,6 +62,12 @@ def keyPressed(Engine,EngineModule,key,selection,objects):
 			pass
 			#Engine.log("current animation is not yet done")
 
+		"""
+		objects.get()["anims"]["stand"] = {
+			"name":"falling","index":0,"starttime":Engine.getTime(),"done":False}
+		animation_helper.findMiddlePos(Engine,EngineModule,objects)
+		"""
+
 def keyReleased(Engine,EngineModule,key,selection,objects):
 	if key == EngineModule.Keys.K_SPACE:
 		if not "head" in objects.get():
@@ -76,4 +82,9 @@ def keyReleased(Engine,EngineModule,key,selection,objects):
 		else:
 			Engine.log("current animation not yet done")
 			objects.get()["anims"]["stand"]["ondone"] = True
+
+		"""
+		objects.get()["anims"]["stand"] = {
+			"name":"rising","index":0,"starttime":Engine.getTime(),"done":False}
+			"""
 

@@ -1,5 +1,20 @@
 import bodyjoint
 
+def hideNonFinal(Engine,EngineModule):
+	objectsNumber = Engine.howManyObjects()
+	for i in range(0,objectsNumber):
+		o = Engine.getObject(i)
+		if o.isGuiShape():
+			if not o.isFinalShape():
+				o.hide()
+
+def showAll(Engine,EngineModule):
+	objectsNumber = Engine.howManyObjects()
+	for i in range(0,objectsNumber):
+		o = Engine.getObject(i)
+		if o.isGuiShape():
+			o.show()
+
 def getBodyFromName(Engine,EngineModule,bodyName):
 	objectsNumber = Engine.howManyObjects()
 	for i in range(0,objectsNumber):
