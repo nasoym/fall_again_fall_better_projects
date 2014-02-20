@@ -20,11 +20,24 @@ angular_force = False
 
 factor_value = 4.0
 angular_force = True
-
 damping_factor = 0.7
+
+factor_value = 4.5
+angular_force = True
+damping_factor = 0.8
+
+factor_value = 8.0
+angular_force = False
+damping_factor = 0.7
+
+factor_value = 4.0
+angular_force = True
+damping_factor = 0.5
+damping_factor = 0.6
 
 force_step = 0.01
 force_step = 0.001
+
 no_osc_message_timeout = 10
 
 def init(Engine,EngineModule,objects):
@@ -35,10 +48,10 @@ def init(Engine,EngineModule,objects):
 	if not "osc_tags_message" in objects.get():
 		objects.get()["osc_tags_message"] = {}
 		objects.setUnsavable("osc_tags_message")
-	objects.get()["osc_tags_message"]["left"] = [Engine.getTime(),0.0]
-	objects.get()["osc_tags_message"]["right"] = [Engine.getTime(),0.0]
-	objects.get()["osc_tags_message"]["top"] = [Engine.getTime(),0.0]
-	objects.get()["osc_tags_message"]["bottom"] = [Engine.getTime(),0.0]
+	objects.get()["osc_tags_message"]["left"] = [Engine.getTime(),1.0]
+	objects.get()["osc_tags_message"]["right"] = [Engine.getTime(),1.0]
+	objects.get()["osc_tags_message"]["top"] = [Engine.getTime(),1.0]
+	objects.get()["osc_tags_message"]["bottom"] = [Engine.getTime(),1.0]
 
 def keyPressed(Engine,EngineModule,key,selection,objects):
 	global damping_factor,factor_value,force_step,angular_force
@@ -114,6 +127,7 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 				oscAddressParts = oscAddress.split("/")
 
 				partsList = []
+				force_factor = 1.0
 				if len(oscAddressParts) >= 3:
 					if oscAddressParts[1] == "group":
 						groupName = oscAddressParts[2]
@@ -131,6 +145,9 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 
 							objects.get()["osc_tags_message"][tag][0] = Engine.getTime()
 							#objects.get()["osc_tags_message"][tag][1] = 0.0
+							if tag == "bottom":
+								#Engine.log("bottom")
+								force_factor = 4.0
 
 						[ partsList.extend(objects.get()[a]) for a in tagList ]
 
@@ -147,8 +164,13 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 						(type(oscMessage[2]) == float) ):
 						for part in partsList:
 							if hasattr(part,"setMotorValues"):
-								#force = 1.0 - oscMessage[2]
-								force = oscMessage[2]
+								force = 1.0 - oscMessage[2]
+								#if force > 0.9:
+									#force = 1.0
+								new_force = force * force_factor
+								#Engine.log("f: " + str(force) + " " + str(new_force))
+								force = new_force
+								#force = oscMessage[2]
 								part.setMotorValues( 
 									(10**(factor_value*force)), 
 									(10**(factor_value*force)) * damping_factor,
@@ -169,6 +191,7 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 										oscMessage[4]) 
 									)
 
+	"""
 	current_time = Engine.getTime()
 	max_last_message_time = 1000 * no_osc_message_timeout
 	for k in objects.get()["osc_tags_message"].keys():
@@ -190,4 +213,4 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 						(10**(factor_value*force)), 
 						(10**(factor_value*force)) * damping_factor,
 						angular_force)
-			
+	"""	
