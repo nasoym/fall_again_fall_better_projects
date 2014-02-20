@@ -14,6 +14,7 @@ import engine_scripts.misc as misc
 import scripts.main as main
 import scripts.temp as temp
 import scripts.anim as anim
+import scripts.websocketserver as websocketserver
 
 class Selection(object):
 	def __init__(self):
@@ -121,6 +122,7 @@ modules.append(misc)
 modules.append(main)
 modules.append(temp)
 modules.append(anim)
+modules.append(websocketserver)
 
 guiUpdates=[]
 
