@@ -40,33 +40,47 @@ class WebsocketClient:
 			self.connection.send(resp)
 			return True
 		except socket.error, e:
-			print('send: socket error' + str(e))
+			self.engine.log('send: socket error' + str(e))
 		except Exception as e:
-			print("send: Exception %s" % (str(e)))
+			self.engine.log("send: Exception %s" % (str(e)))
 			return False
 
 	def poll_message(self):
 		try:
 			data = self.recv_data()
-			print("received: %s" % (data,))
+			#self.engine.log("received: %s" % (data,))
 			#self.broadcast_resp(data)
-#			Engine.log("serial device state: " + str(serial_state))
-#			Engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
-#			Engine.log("serial device state: " + str(serial_state))
-#			Engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
-			self.send('ok')
+			try:
+				message = json.loads(data)
+			except ValueError, e:
+				self.engine.log("invalid json")
+				self.send('invalid json')
+			else:
+				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
+					if message['content'] == 'pressed':
+						Engine.log("websocket received pressed")
+						Engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
+						self.send('received pressed')
+					elif message['content'] == 'released':
+						Engine.log("websocket received released")
+						Engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
+						self.send('received released')
+					else:
+						self.send('received: unknown content')
+				else:
+					self.send('received: unknown type')
 			return True
 		except socket.error, e:
 			if e.errno == errno.EAGAIN:
-				#print('errno.EAGAIN')
+				#self.engine.log('errno.EAGAIN')
 				pass
 			else:
-				#print('poll_message: socket error' + str(e))
+				#self.engine.log('poll_message: socket error' + str(e))
 				pass
 			pass
 		except Exception as e:
 			pass
-			print("poll_message: Exception %s" % (str(e)))
+			self.engine.log("poll_message: Exception %s" % (str(e)))
 			return False
 
 	def recv_data(self):
@@ -86,7 +100,7 @@ class WebsocketClient:
 		# assert that data is masked
 		assert(0x1 == (0xFF & data[1]) >> 7)
 		datalen = (0x7F & data[1])
-		#print("received data len %d" %(datalen,))
+		#self.engine.log("received data len %d" %(datalen,))
 		str_data = ''
 		if(datalen > 0):
 			mask_key = data[2:6]
@@ -108,20 +122,20 @@ class WebsocketClient:
 	def handshake (self):
 		try:
 			data = self.connection.recv(2048)
-			#print('Handshaking...')
+			#self.engine.log('Handshaking...')
 			headers = self.parse_headers(data)
-			#print('Got headers:')
+			#self.engine.log('Got headers:')
 			#for k, v in headers.iteritems():
-			#		print k, ':', v
+			#		self.engine.log k, ':', v
 			key = headers['Sec-WebSocket-Key']
 			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
-			#print('Response: [%s]' % (resp_data,))
+			#self.engine.log('Response: [%s]' % (resp_data,))
 			#return self.connection.send(resp_data)
-			print('Handshaked')
+			self.engine.log('Handshaked')
 			self.connection.send(resp_data)
 			return True
 		except socket.error, e:
-			print('handshake: socket error' + str(e))
+			self.engine.log('handshake: socket error' + str(e))
 			pass
 		return False
 
@@ -149,7 +163,7 @@ class PollingWebSocketServer:
 			conn, addr = self.server_socket.accept()
 			self.connected_clients.append(WebsocketClient(self.engine,conn,addr))
 		except socket.error, e:
-			#print('poll_connections: socket error' + str(e))
+			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
 
 		connections_to_remove = []
