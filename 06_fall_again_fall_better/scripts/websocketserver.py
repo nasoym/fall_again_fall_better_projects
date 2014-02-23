@@ -6,23 +6,76 @@
 import socket, hashlib, base64, threading
 import json
 
-class PyWSock:
+import errno
+
+class WebsocketClient:
 	MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 	HSHAKE_RESP = "HTTP/1.1 101 Switching Protocols\r\n" + \
-				"Upgrade: websocket\r\n" + \
-				"Connection: Upgrade\r\n" + \
-				"Sec-WebSocket-Accept: %s\r\n" + \
-				"\r\n"
-	LOCK = threading.Lock()
-	clients = []
+							"Upgrade: websocket\r\n" + \
+							"Connection: Upgrade\r\n" + \
+							"Sec-WebSocket-Accept: %s\r\n" + \
+							"\r\n"
 
-	def recv_data (self, client):
+	def __init__(self, engine, connection, address):
+		self.connection = connection
+		self.address = address
+		self.engine = engine
+		self.handshaked = False
+
+	def serve_connection(self):
+		if (self.handshaked == False):
+			self.handshaked = self.handshake()
+			return True
+		else:
+			return self.poll_message()
+
+	def send(self, data):
+		# 1st byte: fin bit set. text frame bits set.
+		# 2nd byte: no mask. length set in 1 byte. 
+		resp = bytearray([0b10000001, len(data)])
+		# append the data bytes
+		for d in bytearray(data):
+			resp.append(d)
+		try:
+			self.connection.send(resp)
+			return True
+		except socket.error, e:
+			print('send: socket error' + str(e))
+		except Exception as e:
+			print("send: Exception %s" % (str(e)))
+			return False
+
+	def poll_message(self):
+		try:
+			data = self.recv_data()
+			print("received: %s" % (data,))
+			#self.broadcast_resp(data)
+#			Engine.log("serial device state: " + str(serial_state))
+#			Engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
+#			Engine.log("serial device state: " + str(serial_state))
+#			Engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
+			self.send('ok')
+			return True
+		except socket.error, e:
+			if e.errno == errno.EAGAIN:
+				#print('errno.EAGAIN')
+				pass
+			else:
+				#print('poll_message: socket error' + str(e))
+				pass
+			pass
+		except Exception as e:
+			pass
+			print("poll_message: Exception %s" % (str(e)))
+			return False
+
+	def recv_data(self):
 		# as a simple server, we expect to receive:
-		#	- all data at one go and one frame
-		#	- one frame at a time
-		#	- text protocol
-		#	- no ping pong messages
-		data = bytearray(client.recv(512))
+		#		- all data at one go and one frame
+		#		- one frame at a time
+		#		- text protocol
+		#		- no ping pong messages
+		data = bytearray(self.connection.recv(512))
 		if(len(data) < 6):
 			raise Exception("Error reading data")
 		# FIN bit must be set to indicate end of frame
@@ -42,82 +95,83 @@ class PyWSock:
 			str_data = str(bytearray(unmasked_data))
 		return str_data
 
-	def broadcast_resp(self, data):
-		# 1st byte: fin bit set. text frame bits set.
-		# 2nd byte: no mask. length set in 1 byte. 
-		resp = bytearray([0b10000001, len(data)])
-		# append the data bytes
-		for d in bytearray(data):
-			resp.append(d)
-		self.LOCK.acquire()
-		for client in self.clients:
-			try:
-				client.send(resp)
-			except:
-				print("error sending to a client")
-		self.LOCK.release()
-
 	def parse_headers (self, data):
 		headers = {}
 		lines = data.splitlines()
 		for l in lines:
-			parts = l.split(": ", 1)
-			if len(parts) == 2:
-				headers[parts[0]] = parts[1]
+				parts = l.split(": ", 1)
+				if len(parts) == 2:
+						headers[parts[0]] = parts[1]
 		headers['code'] = lines[len(lines) - 1]
 		return headers
- 
-	def handshake (self, client):
-		print('Handshaking...')
-		data = client.recv(2048)
-		headers = self.parse_headers(data)
-		print('Got headers:')
-		for k, v in headers.iteritems():
-			print k, ':', v
-		key = headers['Sec-WebSocket-Key']
-		resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
-		print('Response: [%s]' % (resp_data,))
-		return client.send(resp_data)
 
-	def handle_client (self, client, addr):
-		self.handshake(client)
+	def handshake (self):
 		try:
-			while 1:			
-				data = self.recv_data(client)
-				print("received: %s" % (data,))
-				#self.broadcast_resp(data)
-				try:
-					message = json.loads(data)
-				except ValueError, e:
-					print("invalid json")
-				else:
-					if 'percentage' in message:
-						print("percentage: %s" % message['percentage'])
-						pass
-		except Exception as e:
-			print("Exception %s" % (str(e)))
-		print('Client closed: ' + str(addr))
-		self.LOCK.acquire()
-		self.clients.remove(client)
-		self.LOCK.release()
-		client.close()
+			data = self.connection.recv(2048)
+			#print('Handshaking...')
+			headers = self.parse_headers(data)
+			#print('Got headers:')
+			#for k, v in headers.iteritems():
+			#		print k, ':', v
+			key = headers['Sec-WebSocket-Key']
+			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
+			#print('Response: [%s]' % (resp_data,))
+			#return self.connection.send(resp_data)
+			print('Handshaked')
+			self.connection.send(resp_data)
+			return True
+		except socket.error, e:
+			print('handshake: socket error' + str(e))
+			pass
+		return False
 
-	def start_server (self, port):
-		s = socket.socket()
-		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		s.bind(('', port))
-		s.listen(5)
-		while(1):
-			print ('Waiting for connection...')
-			conn, addr = s.accept()
-			print ('Connection from: ' + str(addr))
-			threading.Thread(target = self.handle_client, args = (conn, addr)).start()
-			self.LOCK.acquire()
-			self.clients.append(conn)
-			self.LOCK.release()
+class PollingWebSocketServer:
+	server_socket = None
+	address = ''
+	connected_clients = []
+
+	def __init__(self, engine, port=4545):
+		self.port = port
+		self.server_init()
+		self.engine = engine
+
+	def server_init(self):
+		if (self.server_socket == None):
+			self.server_socket = socket.socket()
+			self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			self.server_socket.setblocking(0)
+			#server_socket.settimeout(1)
+			self.server_socket.bind((self.address, self.port))
+			self.server_socket.listen(5)
+
+	def poll_connections(self):
+		try:
+			conn, addr = self.server_socket.accept()
+			self.connected_clients.append(WebsocketClient(self.engine,conn,addr))
+		except socket.error, e:
+			#print('poll_connections: socket error' + str(e))
+			pass
+
+		connections_to_remove = []
+		for c in self.connected_clients:
+			if (c.serve_connection() == False):
+				connections_to_remove.append(c)
+		for c in connections_to_remove:
+			self.connected_clients.remove(c)
 
 def init(Engine,EngineModule,objects):
-	pass
-	ws = PyWSock()
-	ws.start_server(4545)
+	try:
+		objects.get()["websocket"] = PollingWebSocketServer(Engine)
+		objects.setUnsavable("websocket")
+	except Exception as e:
+		Engine.log("websocket server init: Exception %s" % (str(e)))
+		Engine.quit()
+
+def guiUpdate(Engine,EngineModule,selection,objects):
+	if "websocket" in objects.get():
+		ws = objects.get()["websocket"]
+		try:
+			ws.poll_connections()
+		except Exception as e:
+			Engine.log("websocket guiUpdate poll_connections: Exception %s" % (str(e)))
 
