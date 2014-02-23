@@ -58,12 +58,12 @@ class WebsocketClient:
 			else:
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
-						Engine.log("websocket received pressed")
-						Engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
+						self.engine.log("websocket received pressed")
+						self.engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
 						self.send('received pressed')
 					elif message['content'] == 'released':
-						Engine.log("websocket received released")
-						Engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
+						self.engine.log("websocket received released")
+						self.engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
 						self.send('received released')
 					else:
 						self.send('received: unknown content')
