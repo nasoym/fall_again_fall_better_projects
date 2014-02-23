@@ -16,10 +16,11 @@ class WebsocketClient:
 							"Sec-WebSocket-Accept: %s\r\n" + \
 							"\r\n"
 
-	def __init__(self, engine, connection, address):
+	def __init__(self, engine, engineModule, connection, address):
 		self.connection = connection
 		self.address = address
 		self.engine = engine
+		self.engineModule = engineModule
 		self.handshaked = False
 
 	def serve_connection(self):
@@ -59,11 +60,11 @@ class WebsocketClient:
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
 						self.engine.log("websocket received pressed")
-						self.engine.callPythonKeyPressed(EngineModule.Keys.K_SPACE)
+						self.engine.callPythonKeyPressed(self.engineModule.Keys.K_SPACE)
 						self.send('received pressed')
 					elif message['content'] == 'released':
 						self.engine.log("websocket received released")
-						self.engine.callPythonKeyReleased(EngineModule.Keys.K_SPACE)
+						self.engine.callPythonKeyReleased(self.engineModule.Keys.K_SPACE)
 						self.send('received released')
 					else:
 						self.send('received: unknown content')
@@ -144,10 +145,11 @@ class PollingWebSocketServer:
 	address = ''
 	connected_clients = []
 
-	def __init__(self, engine, port=4545):
+	def __init__(self, engine, engineModule, port=4545):
 		self.port = port
 		self.server_init()
 		self.engine = engine
+		self.engineModule = engineModule
 
 	def server_init(self):
 		if (self.server_socket == None):
@@ -161,7 +163,7 @@ class PollingWebSocketServer:
 	def poll_connections(self):
 		try:
 			conn, addr = self.server_socket.accept()
-			self.connected_clients.append(WebsocketClient(self.engine,conn,addr))
+			self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
 		except socket.error, e:
 			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
@@ -175,7 +177,7 @@ class PollingWebSocketServer:
 
 def init(Engine,EngineModule,objects):
 	try:
-		objects.get()["websocket"] = PollingWebSocketServer(Engine)
+		objects.get()["websocket"] = PollingWebSocketServer(Engine, EngineModule)
 		objects.setUnsavable("websocket")
 	except Exception as e:
 		Engine.log("websocket server init: Exception %s" % (str(e)))
