@@ -7,6 +7,8 @@ import socket, hashlib, base64, threading
 import json
 
 import errno
+import sys
+import time
 
 class WebsocketClient:
 	MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -50,26 +52,30 @@ class WebsocketClient:
 		try:
 			data = self.recv_data()
 			#self.engine.log("received: %s" % (data,))
-			#self.broadcast_resp(data)
 			try:
 				message = json.loads(data)
 			except ValueError, e:
 				self.engine.log("invalid json")
-				self.send('invalid json')
+				self.send('{"type":"message","content":"invalid json"}')
 			else:
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
 						self.engine.log("websocket received pressed")
 						self.engine.callPythonKeyPressed(self.engineModule.Keys.K_SPACE)
-						self.send('received pressed')
+						self.send('{"type":"message","content":"received pressed"}')
 					elif message['content'] == 'released':
 						self.engine.log("websocket received released")
 						self.engine.callPythonKeyReleased(self.engineModule.Keys.K_SPACE)
-						self.send('received released')
+						self.send('{"type":"message","content":"received released"}')
 					else:
-						self.send('received: unknown content')
+						self.send('{"type":"message","content":"unknown content"}')
+						pass
+				elif ('type' in message) and (message['type'] == 'ping'):
+					self.engine.log('ping')
+					self.send('{"type":"pong"}')
 				else:
-					self.send('received: unknown type')
+					self.send('{"type":"message","content":"unknown type"}')
+					pass
 			return True
 		except socket.error, e:
 			if e.errno == errno.EAGAIN:
@@ -78,6 +84,7 @@ class WebsocketClient:
 			else:
 				#self.engine.log('poll_message: socket error' + str(e))
 				pass
+				#return False
 			pass
 		except Exception as e:
 			pass
@@ -136,7 +143,7 @@ class WebsocketClient:
 			self.connection.send(resp_data)
 			return True
 		except socket.error, e:
-			self.engine.log('handshake: socket error' + str(e))
+			#self.engine.log('handshake: socket error' + str(e))
 			pass
 		return False
 
@@ -144,6 +151,7 @@ class PollingWebSocketServer:
 	server_socket = None
 	address = ''
 	connected_clients = []
+	client = None
 
 	def __init__(self, engine, engineModule, port=4545):
 		self.port = port
@@ -163,17 +171,23 @@ class PollingWebSocketServer:
 	def poll_connections(self):
 		try:
 			conn, addr = self.server_socket.accept()
-			self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
+			#self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
+			self.client = WebsocketClient(self.engine, self.engineModule, conn, addr)
 		except socket.error, e:
 			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
 
-		connections_to_remove = []
-		for c in self.connected_clients:
-			if (c.serve_connection() == False):
-				connections_to_remove.append(c)
-		for c in connections_to_remove:
-			self.connected_clients.remove(c)
+#		self.engine.log('connected: ' + str(self.connected_clients))
+#		connections_to_remove = []
+#		for c in self.connected_clients:
+#			if (c.serve_connection() == False):
+#				connections_to_remove.append(c)
+#		self.engine.log('to remove: ' + str(connections_to_remove))
+#		for c in connections_to_remove:
+#			self.connected_clients.remove(c)
+#		self.engine.log('after removal: ' + str(self.connected_clients))
+		if self.client != None:
+			self.client.serve_connection()
 
 def init(Engine,EngineModule,objects):
 	try:
@@ -190,4 +204,34 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 			ws.poll_connections()
 		except Exception as e:
 			Engine.log("websocket guiUpdate poll_connections: Exception %s" % (str(e)))
+			Engine.quit()
+
+class MockModuleKeys:
+	K_SPACE = 'space'
+class MockEngine:
+	def __init__(self):
+		self.Keys = MockModuleKeys()
+	def log(self, message):
+		print(message)
+	def callPythonKeyPressed(self, key):
+		print('keypressed: ' + key)
+	def callPythonKeyReleased(self, key):
+		print('keyreleased: ' + key)
+
+if __name__ == "__main__":
+	try:
+		engine = MockEngine()
+		engine.log('hi')
+		engine.callPythonKeyPressed(engine.Keys.K_SPACE)
+		websocketServer = PollingWebSocketServer(engine, engine)
+		while True:
+			websocketServer.poll_connections()
+			time.sleep(0.1)
+
+	except KeyboardInterrupt:
+		print "Ctrl-c pressed ..."
+		sys.exit(1)
+	except Exception as e:
+		print('websocket server Exception: %s' % (str(e)))
+		sys.exit(1)
 
