@@ -124,7 +124,7 @@ modules.append(main)
 modules.append(temp)
 modules.append(anim)
 modules.append(websocketserver)
-modules.append(test_input)
+#modules.append(test_input)
 
 guiUpdates=[]
 
