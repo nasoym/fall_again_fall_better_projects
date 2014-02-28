@@ -176,25 +176,22 @@ class PollingWebSocketServer:
 		except socket.error, e:
 			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
+		self.engine.log('done with looking for new connections')
 
-		#self.engine.log('connected: ' + str(len(self.connected_clients)))
+		self.engine.log('connected: ' + str(len(self.connected_clients)))
 		connections_to_remove = []
-		#for c in self.connected_clients:
 		for id in range(len(self.connected_clients)):
-			#if (c.serve_connection() == False):
-			#	connections_to_remove.append(c)
 			if (self.connected_clients[id].serve_connection(id) == False):
 				connections_to_remove.append(self.connected_clients[id])
 				self.engine.log("%s: " % str(id) + " to remove")
-				
+		self.engine.log('done with serving all current connections')
 
-		#self.engine.log('to remove: ' + str(connections_to_remove))
+		self.engine.log('to remove: ' + str(connections_to_remove))
 		for c in connections_to_remove:
 			self.connected_clients.remove(c)
 			self.engine.log('after removal: ' + str(self.connected_clients))
-		#self.engine.log('after removal: ' + str(self.connected_clients))
-		#if self.client != None:
-			#self.client.serve_connection(0)
+		self.engine.log('after all removals: ' + str(self.connected_clients))
+		self.engine.log('done with removing all invalid connections')
 
 def init(Engine,EngineModule,objects):
 	try:
