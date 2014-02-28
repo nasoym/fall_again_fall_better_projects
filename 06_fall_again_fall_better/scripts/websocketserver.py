@@ -25,12 +25,12 @@ class WebsocketClient:
 		self.engineModule = engineModule
 		self.handshaked = False
 
-	def serve_connection(self):
+	def serve_connection(self, id):
 		if (self.handshaked == False):
-			self.handshaked = self.handshake()
+			self.handshaked = self.handshake(id)
 			return True
 		else:
-			return self.poll_message()
+			return self.poll_message(id)
 
 	def send(self, data):
 		# 1st byte: fin bit set. text frame bits set.
@@ -48,30 +48,30 @@ class WebsocketClient:
 			self.engine.log("send: Exception %s" % (str(e)))
 			return False
 
-	def poll_message(self):
+	def poll_message(self,id):
 		try:
 			data = self.recv_data()
-			#self.engine.log("received: %s" % (data,))
+			#self.engine.log("%s: " % str(id) + "received: %s" % (data,))
 			try:
 				message = json.loads(data)
 			except ValueError, e:
-				self.engine.log("invalid json")
+				self.engine.log("%s: " % str(id) + "invalid json")
 				self.send('{"type":"message","content":"invalid json"}')
 			else:
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
-						self.engine.log("websocket received pressed")
+						self.engine.log("%s: " % str(id) + "websocket received pressed")
 						self.engine.callPythonKeyPressed(self.engineModule.Keys.K_SPACE)
 						self.send('{"type":"message","content":"received pressed"}')
 					elif message['content'] == 'released':
-						self.engine.log("websocket received released")
+						self.engine.log("%s: " % str(id) + "websocket received released")
 						self.engine.callPythonKeyReleased(self.engineModule.Keys.K_SPACE)
 						self.send('{"type":"message","content":"received released"}')
 					else:
 						self.send('{"type":"message","content":"unknown content"}')
 						pass
 				elif ('type' in message) and (message['type'] == 'ping'):
-					self.engine.log('ping')
+					#self.engine.log('ping')
 					self.send('{"type":"pong"}')
 				else:
 					self.send('{"type":"message","content":"unknown type"}')
@@ -88,7 +88,7 @@ class WebsocketClient:
 			pass
 		except Exception as e:
 			pass
-			self.engine.log("poll_message: Exception %s" % (str(e)))
+			self.engine.log("%s: " % str(id) + "poll_message: Exception %s" % (str(e)))
 			return False
 
 	def recv_data(self):
@@ -127,7 +127,7 @@ class WebsocketClient:
 		headers['code'] = lines[len(lines) - 1]
 		return headers
 
-	def handshake (self):
+	def handshake(self, id):
 		try:
 			data = self.connection.recv(2048)
 			#self.engine.log('Handshaking...')
@@ -139,7 +139,7 @@ class WebsocketClient:
 			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
 			#self.engine.log('Response: [%s]' % (resp_data,))
 			#return self.connection.send(resp_data)
-			self.engine.log('Handshaked')
+			self.engine.log("%s: " % str(id) + 'Handshaked')
 			self.connection.send(resp_data)
 			return True
 		except socket.error, e:
@@ -171,23 +171,30 @@ class PollingWebSocketServer:
 	def poll_connections(self):
 		try:
 			conn, addr = self.server_socket.accept()
-			#self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
-			self.client = WebsocketClient(self.engine, self.engineModule, conn, addr)
+			self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
+			#self.client = WebsocketClient(self.engine, self.engineModule, conn, addr)
 		except socket.error, e:
 			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
 
-#		self.engine.log('connected: ' + str(self.connected_clients))
-#		connections_to_remove = []
-#		for c in self.connected_clients:
-#			if (c.serve_connection() == False):
-#				connections_to_remove.append(c)
-#		self.engine.log('to remove: ' + str(connections_to_remove))
-#		for c in connections_to_remove:
-#			self.connected_clients.remove(c)
-#		self.engine.log('after removal: ' + str(self.connected_clients))
-		if self.client != None:
-			self.client.serve_connection()
+		#self.engine.log('connected: ' + str(len(self.connected_clients)))
+		connections_to_remove = []
+		#for c in self.connected_clients:
+		for id in range(len(self.connected_clients)):
+			#if (c.serve_connection() == False):
+			#	connections_to_remove.append(c)
+			if (self.connected_clients[id].serve_connection(id) == False):
+				connections_to_remove.append(self.connected_clients[id])
+				self.engine.log("%s: " % str(id) + " to remove")
+				
+
+		#self.engine.log('to remove: ' + str(connections_to_remove))
+		for c in connections_to_remove:
+			self.connected_clients.remove(c)
+			self.engine.log('after removal: ' + str(self.connected_clients))
+		#self.engine.log('after removal: ' + str(self.connected_clients))
+		#if self.client != None:
+			#self.client.serve_connection(0)
 
 def init(Engine,EngineModule,objects):
 	try:
@@ -221,8 +228,6 @@ class MockEngine:
 if __name__ == "__main__":
 	try:
 		engine = MockEngine()
-		engine.log('hi')
-		engine.callPythonKeyPressed(engine.Keys.K_SPACE)
 		websocketServer = PollingWebSocketServer(engine, engine)
 		while True:
 			websocketServer.poll_connections()
