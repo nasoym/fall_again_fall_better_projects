@@ -9,6 +9,7 @@ import json
 import errno
 import sys
 import time
+import traceback
 
 class WebsocketClient:
 	MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -24,6 +25,18 @@ class WebsocketClient:
 		self.engine = engine
 		self.engineModule = engineModule
 		self.handshaked = False
+
+		self.updateActivity()
+
+	def updateActivity(self):
+		self.lastActivity = engine.getTime()
+
+	def activityAge(self):
+		return engine.getTime() - self.lastActivity
+
+	def close(self):
+		self.engine.log('closing socket')
+		self.connection.close()
 
 	def serve_connection(self, id):
 		if (self.handshaked == False):
@@ -44,8 +57,10 @@ class WebsocketClient:
 			return True
 		except socket.error, e:
 			self.engine.log('send: socket error' + str(e))
+			self.engine.log(traceback.format_exc())
 		except Exception as e:
 			self.engine.log("send: Exception %s" % (str(e)))
+			self.engine.log(traceback.format_exc())
 			return False
 
 	def poll_message(self,id):
@@ -58,6 +73,7 @@ class WebsocketClient:
 				self.engine.log("%s: " % str(id) + "invalid json")
 				self.send('{"type":"message","content":"invalid json"}')
 			else:
+				self.updateActivity()
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
 						self.engine.log("%s: " % str(id) + "websocket received pressed")
@@ -82,13 +98,15 @@ class WebsocketClient:
 				#self.engine.log('errno.EAGAIN')
 				pass
 			else:
-				#self.engine.log('poll_message: socket error' + str(e))
+				self.engine.log('poll_message: socket error' + str(e))
+				self.engine.log(traceback.format_exc())
 				pass
 				#return False
 			pass
 		except Exception as e:
 			pass
 			self.engine.log("%s: " % str(id) + "poll_message: Exception %s" % (str(e)))
+			self.engine.log(traceback.format_exc())
 			return False
 
 	def recv_data(self):
@@ -141,6 +159,7 @@ class WebsocketClient:
 			#return self.connection.send(resp_data)
 			self.engine.log("%s: " % str(id) + 'Handshaked')
 			self.connection.send(resp_data)
+			self.updateActivity()
 			return True
 		except socket.error, e:
 			#self.engine.log('handshake: socket error' + str(e))
@@ -176,22 +195,32 @@ class PollingWebSocketServer:
 		except socket.error, e:
 			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
-		self.engine.log('done with looking for new connections')
+		#self.engine.log('done with looking for new connections')
 
-		self.engine.log('connected: ' + str(len(self.connected_clients)))
+		#self.engine.log('connected: ' + str(len(self.connected_clients)))
 		connections_to_remove = []
 		for id in range(len(self.connected_clients)):
 			if (self.connected_clients[id].serve_connection(id) == False):
 				connections_to_remove.append(self.connected_clients[id])
 				self.engine.log("%s: " % str(id) + " to remove")
-		self.engine.log('done with serving all current connections')
+			connectionAge = self.connected_clients[id].activityAge()
+			#self.engine.log('%s: age: ' % str(id) + str(connectionAge))
+			#if connectionAge > (1000 * 5):
+			#if connectionAge > (1000 * 2):
+			if connectionAge > (1000 * 20):
+				self.engine.log("%s: " % str(id) + " is too old: %s : removing" % str(connectionAge))
+				self.connected_clients[id].close()
+				connections_to_remove.append(self.connected_clients[id])
 
-		self.engine.log('to remove: ' + str(connections_to_remove))
-		for c in connections_to_remove:
-			self.connected_clients.remove(c)
-			self.engine.log('after removal: ' + str(self.connected_clients))
-		self.engine.log('after all removals: ' + str(self.connected_clients))
-		self.engine.log('done with removing all invalid connections')
+		#self.engine.log('done with serving all current connections')
+
+		if len(connections_to_remove) > 0 :
+			self.engine.log('to remove: ' + str(connections_to_remove))
+			for c in connections_to_remove:
+				self.connected_clients.remove(c)
+				self.engine.log('after removal: ' + str(self.connected_clients))
+			self.engine.log('after all removals: ' + str(self.connected_clients))
+			self.engine.log('done with removing all invalid connections')
 
 def init(Engine,EngineModule,objects):
 	try:
@@ -199,6 +228,7 @@ def init(Engine,EngineModule,objects):
 		objects.setUnsavable("websocket")
 	except Exception as e:
 		Engine.log("websocket server init: Exception %s" % (str(e)))
+		Engine.log(traceback.format_exc())
 		Engine.quit()
 
 def guiUpdate(Engine,EngineModule,selection,objects):
@@ -208,6 +238,7 @@ def guiUpdate(Engine,EngineModule,selection,objects):
 			ws.poll_connections()
 		except Exception as e:
 			Engine.log("websocket guiUpdate poll_connections: Exception %s" % (str(e)))
+			Engine.log(traceback.format_exc())
 			Engine.quit()
 
 class MockModuleKeys:
@@ -221,19 +252,24 @@ class MockEngine:
 		print('keypressed: ' + key)
 	def callPythonKeyReleased(self, key):
 		print('keyreleased: ' + key)
+	def getTime(self):
+		return int(round(time.time() * 1000))
 
 if __name__ == "__main__":
 	try:
 		engine = MockEngine()
 		websocketServer = PollingWebSocketServer(engine, engine)
+		startTime = engine.getTime()
 		while True:
 			websocketServer.poll_connections()
 			time.sleep(0.1)
+			#print(": %s" % str(engine.getTime() - startTime))
 
 	except KeyboardInterrupt:
 		print "Ctrl-c pressed ..."
 		sys.exit(1)
 	except Exception as e:
 		print('websocket server Exception: %s' % (str(e)))
+		print(traceback.format_exc())
 		sys.exit(1)
 
