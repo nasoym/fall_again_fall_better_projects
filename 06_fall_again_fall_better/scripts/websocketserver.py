@@ -208,7 +208,7 @@ class PollingWebSocketServer:
 			#self.engine.log('%s: age: ' % str(id) + str(connectionAge))
 			#if connectionAge > (1000 * 5):
 			#if connectionAge > (1000 * 2):
-			if connectionAge > (1000 * 20):
+			if connectionAge > (1000 * 60):
 				self.engine.log("%s: " % str(id) + " is too old: %s : removing" % str(connectionAge))
 				self.connected_clients[id].close()
 				connections_to_remove.append(self.connected_clients[id])
