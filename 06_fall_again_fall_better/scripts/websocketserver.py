@@ -98,8 +98,8 @@ class WebsocketClient:
 				#self.engine.log('errno.EAGAIN')
 				pass
 			else:
-				self.engine.log('poll_message: socket error' + str(e))
-				self.engine.log(traceback.format_exc())
+				#self.engine.log('poll_message: socket error' + str(e))
+				#self.engine.log(traceback.format_exc())
 				pass
 				#return False
 			pass
