@@ -202,6 +202,7 @@ class PollingWebSocketServer:
 		for id in range(len(self.connected_clients)):
 			if (self.connected_clients[id].serve_connection(id) == False):
 				connections_to_remove.append(self.connected_clients[id])
+				self.connected_clients[id].close()
 				self.engine.log("%s: " % str(id) + " to remove")
 			connectionAge = self.connected_clients[id].activityAge()
 			#self.engine.log('%s: age: ' % str(id) + str(connectionAge))
