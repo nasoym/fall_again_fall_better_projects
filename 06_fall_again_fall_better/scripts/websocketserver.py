@@ -29,10 +29,10 @@ class WebsocketClient:
 		self.updateActivity()
 
 	def updateActivity(self):
-		self.lastActivity = engine.getTime()
+		self.lastActivity = self.engine.getTime()
 
 	def activityAge(self):
-		return engine.getTime() - self.lastActivity
+		return self.engine.getTime() - self.lastActivity
 
 	def close(self):
 		self.engine.log('closing socket')
