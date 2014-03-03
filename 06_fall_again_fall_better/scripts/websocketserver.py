@@ -11,6 +11,14 @@ import sys
 import time
 import traceback
 
+connectionCounter = 0
+
+def getCounter():
+	global connectionCounter
+	tempCounter = connectionCounter
+	connectionCounter += 1
+	return tempCounter
+
 class WebsocketClient:
 	MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 	HSHAKE_RESP = "HTTP/1.1 101 Switching Protocols\r\n" + \
@@ -27,6 +35,11 @@ class WebsocketClient:
 		self.handshaked = False
 
 		self.updateActivity()
+		self.id = getCounter()
+		self.engine.log('%s: received connection from: %s' % (self.id, str(address)))
+
+	def getId(self):
+		return self.id
 
 	def updateActivity(self):
 		self.lastActivity = self.engine.getTime()
@@ -35,15 +48,15 @@ class WebsocketClient:
 		return self.engine.getTime() - self.lastActivity
 
 	def close(self):
-		self.engine.log('closing socket')
+		self.engine.log('%s: closing socket' % self.id)
 		self.connection.close()
 
-	def serve_connection(self, id):
+	def serve_connection(self):
 		if (self.handshaked == False):
-			self.handshaked = self.handshake(id)
+			self.handshaked = self.handshake()
 			return True
 		else:
-			return self.poll_message(id)
+			return self.poll_message()
 
 	def send(self, data):
 		# 1st byte: fin bit set. text frame bits set.
@@ -56,38 +69,36 @@ class WebsocketClient:
 			self.connection.send(resp)
 			return True
 		except socket.error, e:
-			self.engine.log('send: socket error' + str(e))
+			self.engine.log('%s: send: socket error' % self.id + str(e))
 			self.engine.log(traceback.format_exc())
 		except Exception as e:
-			self.engine.log("send: Exception %s" % (str(e)))
+			self.engine.log("%s: send: Exception %s" % (self.id, str(e)))
 			self.engine.log(traceback.format_exc())
 			return False
 
-	def poll_message(self,id):
+	def poll_message(self):
 		try:
 			data = self.recv_data()
-			#self.engine.log("%s: " % str(id) + "received: %s" % (data,))
 			try:
 				message = json.loads(data)
 			except ValueError, e:
-				self.engine.log("%s: " % str(id) + "invalid json")
+				self.engine.log("%s: " % self.id + "invalid json")
 				self.send('{"type":"message","content":"invalid json"}')
 			else:
 				self.updateActivity()
 				if ('type' in message) and ('content' in message) and (message['type'] == 'message'):
 					if message['content'] == 'pressed':
-						self.engine.log("%s: " % str(id) + "websocket received pressed")
+						self.engine.log("%s: " % self.id + "websocket received pressed")
 						self.engine.callPythonKeyPressed(self.engineModule.Keys.K_SPACE)
 						self.send('{"type":"message","content":"received pressed"}')
 					elif message['content'] == 'released':
-						self.engine.log("%s: " % str(id) + "websocket received released")
+						self.engine.log("%s: " % self.id + "websocket received released")
 						self.engine.callPythonKeyReleased(self.engineModule.Keys.K_SPACE)
 						self.send('{"type":"message","content":"received released"}')
 					else:
 						self.send('{"type":"message","content":"unknown content"}')
 						pass
 				elif ('type' in message) and (message['type'] == 'ping'):
-					#self.engine.log('ping')
 					self.send('{"type":"pong"}')
 				else:
 					self.send('{"type":"message","content":"unknown type"}')
@@ -95,17 +106,13 @@ class WebsocketClient:
 			return True
 		except socket.error, e:
 			if e.errno == errno.EAGAIN:
-				#self.engine.log('errno.EAGAIN')
 				pass
 			else:
-				#self.engine.log('poll_message: socket error' + str(e))
-				#self.engine.log(traceback.format_exc())
 				pass
-				#return False
 			pass
 		except Exception as e:
 			pass
-			self.engine.log("%s: " % str(id) + "poll_message: Exception %s" % (str(e)))
+			self.engine.log("%s: " % self.id + "poll_message: Exception %s" % (str(e)))
 			self.engine.log(traceback.format_exc())
 			return False
 
@@ -126,7 +133,6 @@ class WebsocketClient:
 		# assert that data is masked
 		assert(0x1 == (0xFF & data[1]) >> 7)
 		datalen = (0x7F & data[1])
-		#self.engine.log("received data len %d" %(datalen,))
 		str_data = ''
 		if(datalen > 0):
 			mask_key = data[2:6]
@@ -138,34 +144,27 @@ class WebsocketClient:
 	def parse_headers (self, data):
 		headers = {}
 		lines = data.splitlines()
-		self.engine.log('data: %s' % str(data))
-		self.engine.log('lines: %s' % str(lines))
+		self.engine.log('%s: data: %s' % (self.id, str(data)))
+		self.engine.log('%s: lines: %s' % (self.id, str(lines)))
 		for l in lines:
 				parts = l.split(": ", 1)
 				if len(parts) == 2:
 						headers[parts[0]] = parts[1]
-		self.engine.log('headers: %s' % str(headers))
+		self.engine.log('%s: headers: %s' % (self.id, str(headers)))
 		headers['code'] = lines[len(lines) - 1]
 		return headers
 
-	def handshake(self, id):
+	def handshake(self):
 		try:
 			data = self.connection.recv(2048)
-			#self.engine.log('Handshaking...')
 			headers = self.parse_headers(data)
-			#self.engine.log('Got headers:')
-			#for k, v in headers.iteritems():
-			#		self.engine.log k, ':', v
 			key = headers['Sec-WebSocket-Key']
 			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
-			#self.engine.log('Response: [%s]' % (resp_data,))
-			#return self.connection.send(resp_data)
-			self.engine.log("%s: " % str(id) + 'Handshaked')
+			self.engine.log("%s: " % self.id + 'Handshaked')
 			self.connection.send(resp_data)
 			self.updateActivity()
 			return True
 		except socket.error, e:
-			#self.engine.log('handshake: socket error' + str(e))
 			pass
 		return False
 
@@ -194,29 +193,22 @@ class PollingWebSocketServer:
 		try:
 			conn, addr = self.server_socket.accept()
 			self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
-			#self.client = WebsocketClient(self.engine, self.engineModule, conn, addr)
 		except socket.error, e:
-			#self.engine.log('poll_connections: socket error' + str(e))
 			pass
-		#self.engine.log('done with looking for new connections')
 
-		#self.engine.log('connected: ' + str(len(self.connected_clients)))
 		connections_to_remove = []
 		for id in range(len(self.connected_clients)):
-			if (self.connected_clients[id].serve_connection(id) == False):
+			if (self.connected_clients[id].serve_connection() == False):
 				connections_to_remove.append(self.connected_clients[id])
+				self.engine.log("%s: " % self.connected_clients[id].getId() + " to remove")
 				self.connected_clients[id].close()
-				self.engine.log("%s: " % str(id) + " to remove")
 			connectionAge = self.connected_clients[id].activityAge()
-			#self.engine.log('%s: age: ' % str(id) + str(connectionAge))
 			#if connectionAge > (1000 * 5):
 			#if connectionAge > (1000 * 2):
 			if connectionAge > (1000 * 60):
-				self.engine.log("%s: " % str(id) + " is too old: %s : removing" % str(connectionAge))
+				self.engine.log("%s: " % self.connected_clients[id].getId() + " is too old: %s : removing" % str(connectionAge))
 				self.connected_clients[id].close()
 				connections_to_remove.append(self.connected_clients[id])
-
-		#self.engine.log('done with serving all current connections')
 
 		if len(connections_to_remove) > 0 :
 			self.engine.log('to remove: ' + str(connections_to_remove))
