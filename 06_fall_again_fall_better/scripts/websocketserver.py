@@ -152,6 +152,7 @@ class WebsocketClient:
 						headers[parts[0]] = parts[1]
 		self.engine.log('%s: headers: %s' % (self.id, str(headers)))
 		headers['code'] = lines[len(lines) - 1]
+		self.engine.log('%s: headers: %s' % (self.id, str(headers)))
 		return headers
 
 	def handshake(self):
@@ -193,6 +194,7 @@ class PollingWebSocketServer:
 		try:
 			conn, addr = self.server_socket.accept()
 			self.connected_clients.append(WebsocketClient(self.engine, self.engineModule, conn, addr))
+			self.engine.log('clients: %s' % str([ client.getId() for client in self.connected_clients ]))
 		except socket.error, e:
 			pass
 
@@ -256,12 +258,14 @@ if __name__ == "__main__":
 		engine = MockEngine()
 		websocketServer = PollingWebSocketServer(engine, engine)
 		startTime = engine.getTime()
+		engine.log('starting websocket server')
 		while True:
 			websocketServer.poll_connections()
 			time.sleep(0.1)
 			#print(": %s" % str(engine.getTime() - startTime))
 
 	except KeyboardInterrupt:
+		engine.log('closing websocket server')
 		print "Ctrl-c pressed ..."
 		sys.exit(1)
 	except Exception as e:
