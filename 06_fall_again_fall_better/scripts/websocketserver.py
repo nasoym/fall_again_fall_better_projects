@@ -213,11 +213,10 @@ class PollingWebSocketServer:
 				connections_to_remove.append(self.connected_clients[id])
 
 		if len(connections_to_remove) > 0 :
-			self.engine.log('to remove: ' + str(connections_to_remove))
+			self.engine.log('clients to remove: %s' % str([ client.getId() for client in connections_to_remove ]))
 			for c in connections_to_remove:
 				self.connected_clients.remove(c)
-				self.engine.log('after removal: ' + str(self.connected_clients))
-			self.engine.log('after all removals: ' + str(self.connected_clients))
+			self.engine.log('clients: %s' % str([ client.getId() for client in self.connected_clients ]))
 			self.engine.log('done with removing all invalid connections')
 
 def init(Engine,EngineModule,objects):
