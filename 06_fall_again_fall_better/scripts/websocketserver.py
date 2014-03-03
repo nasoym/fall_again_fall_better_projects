@@ -138,10 +138,13 @@ class WebsocketClient:
 	def parse_headers (self, data):
 		headers = {}
 		lines = data.splitlines()
+		self.engine.log('data: %s' % str(data))
+		self.engine.log('lines: %s' % str(lines))
 		for l in lines:
 				parts = l.split(": ", 1)
 				if len(parts) == 2:
 						headers[parts[0]] = parts[1]
+		self.engine.log('headers: %s' % str(headers))
 		headers['code'] = lines[len(lines) - 1]
 		return headers
 
