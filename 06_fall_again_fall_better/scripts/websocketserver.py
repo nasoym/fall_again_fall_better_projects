@@ -163,7 +163,8 @@ class WebsocketClient:
 			headers = self.parse_headers(data)
 			if len(headers) == 0:
 				self.engine.log('%s: headers are empty' % (self.id))
-				return False
+				raise Exception('empty headers')
+				#return False
 			key = headers['Sec-WebSocket-Key']
 			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
 			self.engine.log("%s: " % self.id + 'Handshaked')
@@ -205,10 +206,17 @@ class PollingWebSocketServer:
 
 		connections_to_remove = []
 		for id in range(len(self.connected_clients)):
-			if (self.connected_clients[id].serve_connection() == False):
+			try:
+				if (self.connected_clients[id].serve_connection() == False):
+					connections_to_remove.append(self.connected_clients[id])
+					self.engine.log("%s: " % self.connected_clients[id].getId() + " to remove")
+					self.connected_clients[id].close()
+			except Exception as e:
+				self.engine.log('%s: serve connection exception: %s' % (self.connected_clients[id].getId(),str(e)))
+				self.engine.log(traceback.format_exc())
 				connections_to_remove.append(self.connected_clients[id])
-				self.engine.log("%s: " % self.connected_clients[id].getId() + " to remove")
 				self.connected_clients[id].close()
+				pass
 			connectionAge = self.connected_clients[id].activityAge()
 			#if connectionAge > (1000 * 5):
 			#if connectionAge > (1000 * 2):
