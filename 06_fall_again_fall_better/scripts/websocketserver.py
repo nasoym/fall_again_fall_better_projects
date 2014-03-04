@@ -144,21 +144,26 @@ class WebsocketClient:
 	def parse_headers (self, data):
 		headers = {}
 		lines = data.splitlines()
-		self.engine.log('%s: data: %s' % (self.id, str(data)))
+		if len(lines) == 0:
+			return []
+		#self.engine.log('%s: data: %s' % (self.id, str(data)))
 		self.engine.log('%s: lines: %s' % (self.id, str(lines)))
 		for l in lines:
 				parts = l.split(": ", 1)
 				if len(parts) == 2:
 						headers[parts[0]] = parts[1]
-		self.engine.log('%s: headers: %s' % (self.id, str(headers)))
+		#self.engine.log('%s: headers: %s' % (self.id, str(headers)))
 		headers['code'] = lines[len(lines) - 1]
-		self.engine.log('%s: headers: %s' % (self.id, str(headers)))
+		#self.engine.log('%s: headers: %s' % (self.id, str(headers)))
 		return headers
 
 	def handshake(self):
 		try:
 			data = self.connection.recv(2048)
 			headers = self.parse_headers(data)
+			if len(headers) == 0:
+				self.engine.log('%s: headers are empty' % (self.id))
+				return False
 			key = headers['Sec-WebSocket-Key']
 			resp_data = self.HSHAKE_RESP % ((base64.b64encode(hashlib.sha1(key+self.MAGIC).digest()),))
 			self.engine.log("%s: " % self.id + 'Handshaked')
